@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NIFTY WEEKLY IC V13</title>
+<style>
+body{background:#0b1220;color:#fff;font-family:Arial;padding:12px}
+.card{background:#131d33;border:1px solid #26334f;border-radius:14px;padding:14px;margin-bottom:14px}
+h1{text-align:center}
+input,select,button{width:100%;padding:10px;margin-top:6px;margin-bottom:10px;border-radius:8px;border:none}
+button{background:#6c5cff;color:white;font-weight:bold}
+.box{background:#0f172a;padding:10px;border-radius:8px;margin:6px 0}
+</style>
+</head>
+<body>
+
+<h1>NIFTY WEEKLY IC V13</h1>
+
+<div class="card">
+<h3>MARKET PARAMETERS</h3>
+
+Nifty Spot
+<input id="spot" type="number">
+
+India VIX
+<input id="vix" type="number">
+
+ATR
+<input id="atr" type="number">
+
+ATM IV
+<input id="iv" type="number">
+
+PCR
+<input id="pcr" type="number" step="0.01">
+
+RSI
+<input id="rsi" type="number">
+
+Entry Day
+<select id="day">
+<option>Wednesday</option>
+<option>Thursday</option>
+<option>Friday</option>
+<option>Monday</option>
+<option>Tuesday</option>
+</select>
+
+<button onclick="calculate()">Compute Strategy Structure</button>
+</div>
+
+<div class="card">
+<h3>SYSTEM METRICS</h3>
+<div class="box" id="bias"></div>
+<div class="box" id="risk"></div>
+<div class="box" id="pop"></div>
+</div>
+
+<div class="card">
+<h3>CALCULATED IRON CONDOR</h3>
+<div class="box" id="pe"></div>
+<div class="box" id="ce"></div>
+</div>
+
+<div class="card">
+<h3>DIRECTIONAL STRATEGY</h3>
+<div class="box" id="direction"></div>
+<div class="box" id="dirsell"></div>
+<div class="box" id="dirbuy"></div>
+</div>
+
+<div class="card">
+<h3>IC RISK MATRIX</h3>
+
+PE Short LTP
+<input id="peLtp" type="number">
+
+CE Short LTP
+<input id="ceLtp" type="number">
+
+<button onclick="icCalc()">Calculate IC Thresholds</button>
+
+<div class="box" id="peTp"></div>
+<div class="box" id="peSl"></div>
+<div class="box" id="ceTp"></div>
+<div class="box" id="ceSl"></div>
+</div>
+
+<div class="card">
+<h3>DIRECTIONAL RISK MATRIX</h3>
+
+Sell Leg LTP
+<input id="sellLtp" type="number">
+
+Buy Leg LTP
+<input id="buyLtp" type="number">
+
+<button onclick="dirCalc()">Calculate Directional Thresholds</button>
+
+<div class="box" id="dirTp"></div>
+<div class="box" id="dirSl"></div>
+</div>
+
+<script>
+
+function calculate(){
+
+let spot=parseFloat(document.getElementById("spot").value);
+let vix=parseFloat(document.getElementById("vix").value);
+let atr=parseFloat(document.getElementById("atr").value);
+let pcr=parseFloat(document.getElementById("pcr").value);
+let rsi=parseFloat(document.getElementById("rsi").value);
+let day=document.getElementById("day").value;
+
+let score=0;
+
+if(rsi>=55) score++;
+if(rsi<=45) score--;
+if(pcr>=1) score++;
+if(pcr<=0.95) score--;
+
+let bias="Neutral";
+
+if(score>=1) bias="Bullish";
+if(score<=-1) bias="Bearish";
+
+let risk="Low";
+if(vix>=13 && vix<16) risk="Medium";
+if(vix>=16) risk="High";
+
+let pop="80%";
+if(day=="Thursday") pop="83%";
+if(day=="Friday") pop="88%";
+if(day=="Monday") pop="92%";
+if(day=="Tuesday") pop="95%";
+
+let move=spot*(vix/100)*Math.sqrt(5/365);
+move=move+(atr*0.20);
+
+if(pcr<0.90)
+    move+=50;
+
+let pe=Math.floor((spot-move)/50)*50;
+let ce=Math.ceil((spot+move)/50)*50;
+
+document.getElementById("bias").innerHTML="Market Bias : "+bias;
+document.getElementById("risk").innerHTML="Risk : "+risk;
+document.getElementById("pop").innerHTML="POP : "+pop;
+document.getElementById("pe").innerHTML="SELL PE : "+pe;
+document.getElementById("ce").innerHTML="SELL CE : "+ce;
+
+if(bias=="Bullish"){
+ let sell=Math.floor(spot/50)*50;
+ let buy=sell-200;
+ document.getElementById("direction").innerHTML="Bull Put Spread";
+ document.getElementById("dirsell").innerHTML="SELL PE : "+sell;
+ document.getElementById("dirbuy").innerHTML="BUY PE : "+buy;
+}
+else if(bias=="Bearish"){
+ let sell=Math.ceil(spot/50)*50;
+ let buy=sell+200;
+ document.getElementById("direction").innerHTML="Bear Call Spread";
+ document.getElementById("dirsell").innerHTML="SELL CE : "+sell;
+ document.getElementById("dirbuy").innerHTML="BUY CE : "+buy;
+}
+else{
+ document.getElementById("direction").innerHTML="No Trade";
+ document.getElementById("dirsell").innerHTML="";
+ document.getElementById("dirbuy").innerHTML="";
+}
+
+}
+
+function icCalc(){
+
+let pe=parseFloat(document.getElementById("peLtp").value);
+let ce=parseFloat(document.getElementById("ceLtp").value);
+
+document.getElementById("peTp").innerHTML="PE TP : "+(pe*0.5).toFixed(2);
+document.getElementById("peSl").innerHTML="PE SL : "+(pe*1.5).toFixed(2);
+
+document.getElementById("ceTp").innerHTML="CE TP : "+(ce*0.5).toFixed(2);
+document.getElementById("ceSl").innerHTML="CE SL : "+(ce*1.5).toFixed(2);
+
+}
+
+function dirCalc(){
+
+let sell=parseFloat(document.getElementById("sellLtp").value);
+let buy=parseFloat(document.getElementById("buyLtp").value);
+
+let spread=sell-buy;
+
+document.getElementById("dirTp").innerHTML="TP : "+(spread*0.5).toFixed(2);
+document.getElementById("dirSl").innerHTML="SL : "+(spread*2).toFixed(2);
+
+}
+
+</script>
+
+</body>
+</html>
